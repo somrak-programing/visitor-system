@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             updateStepper('next');
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            setTimeout(() => { isTransitioning = false; }, 500);
+            setTimeout(() => { isTransitioning = false; }, 650);
         }
     });
 
@@ -457,7 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentStep--;
         updateStepper('prev');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        setTimeout(() => { isTransitioning = false; }, 500);
+        setTimeout(() => { isTransitioning = false; }, 650);
     });
 
     // --- DYNAMIC TABLES LOGIC ---
