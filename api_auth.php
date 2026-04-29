@@ -8,11 +8,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'login') {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
 
-    $stmt = $pdo->prepare("SELECT * FROM tb_users WHERE username = ? AND password = ?");
-    $stmt->execute([$username, $password]);
+    $stmt = $pdo->prepare("SELECT * FROM tb_users WHERE username = ?");
+    $stmt->execute([$username]);
     $user = $stmt->fetch();
 
-    if ($user) {
+    if ($user && password_verify($password, $user['password'])) {
+        // Regenerate session ID to prevent session fixation attacks
+        session_regenerate_id(true);
         $_SESSION['user_id'] = $user['user_id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'];

@@ -1,4 +1,8 @@
 <?php
+// Secure Session Settings
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+// Note: session.cookie_secure = 1 should be used in production with HTTPS
 session_start();
 $host = 'localhost';
 $db   = 'visitor_system';

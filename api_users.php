@@ -35,8 +35,10 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'add') {
         exit;
     }
 
+    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
     $stmt = $pdo->prepare("INSERT INTO tb_users (username, password, email, role, name) VALUES (?, ?, ?, ?, ?)");
-    if ($stmt->execute([$username, $password, $email, $role, $name])) {
+    if ($stmt->execute([$username, $hashed_password, $email, $role, $name])) {
         echo json_encode(["status" => "success", "message" => "User added successfully."]);
     } else {
         echo json_encode(["status" => "error", "message" => "Failed to add user."]);
@@ -65,8 +67,9 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update') {
 
     if (!empty($password)) {
         // Update with password
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $pdo->prepare("UPDATE tb_users SET username = ?, password = ?, email = ?, role = ?, name = ? WHERE user_id = ?");
-        $result = $stmt->execute([$username, $password, $email, $role, $name, $userId]);
+        $result = $stmt->execute([$username, $hashed_password, $email, $role, $name, $userId]);
     } else {
         // Update without changing password
         $stmt = $pdo->prepare("UPDATE tb_users SET username = ?, email = ?, role = ?, name = ? WHERE user_id = ?");
