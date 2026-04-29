@@ -265,7 +265,7 @@ $agendas = $stmtA->fetchAll();
 </div>
 
 <div class="no-print">
-    <a href="javascript:history.back()" class="btn-back">← Back</a>
+    <button onclick="window.close()" class="btn-back">✕ Close Window</button>
     <button class="btn-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
 </div>
 
