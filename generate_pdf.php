@@ -171,12 +171,15 @@ $agendas = $stmtA->fetchAll();
 
 <div class="a4-page">
     <div class="header">
-        <div>
-            <h1>Visitor Pass</h1>
-            <p style="margin:5px 0 0; color:#64748b; font-size:14px;">TCP Group Plant Tour Permission</p>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <img src="logo.png" alt="TCP Logo" style="height: 60px; object-fit: contain;">
+            <div>
+                <h1>Visitor Pass</h1>
+                <p style="margin:5px 0 0; color:#64748b; font-size:14px;">TCP Group Plant Tour Permission</p>
+            </div>
         </div>
         <div style="text-align: right;">
-            <p style="margin:0; font-size: 14px;">Req ID: <strong>#<?php echo str_pad($req['request_id'], 4, '0', STR_PAD_LEFT); ?></strong></p>
+            <p style="margin:0; font-size: 14px;">Req ID: <strong><?php echo 'VR-' . str_pad($req['request_id'], 4, '0', STR_PAD_LEFT); ?></strong></p>
             <span class="badge">E-PASS APPROVED</span>
         </div>
     </div>
