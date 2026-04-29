@@ -80,11 +80,22 @@
             const result = await res.json();
 
             if(result.status === 'success') {
-                window.location.href = 'portal.html';
+                btn.innerText = 'Sign In';
+                btn.disabled = false;
+                window.location.replace('portal.html');
             } else {
                 const err = document.getElementById('errorMsg');
                 err.innerText = result.message;
                 err.style.display = 'block';
+                btn.innerText = 'Sign In';
+                btn.disabled = false;
+            }
+        });
+        
+        // Reset button state if user navigates back via BFCache
+        window.addEventListener('pageshow', function(event) {
+            const btn = document.getElementById('btnLogin');
+            if (btn) {
                 btn.innerText = 'Sign In';
                 btn.disabled = false;
             }
