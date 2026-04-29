@@ -12,23 +12,26 @@ try {
     $currentYear = date('Y');
 
     // 1. KPI Boxes
-    $stmt1 = $pdo->query("SELECT COUNT(*) as total_requests FROM tb_visitor_requests WHERE YEAR(tour_date) = $currentYear");
+    $stmt1 = $pdo->prepare("SELECT COUNT(*) as total_requests FROM tb_visitor_requests WHERE YEAR(tour_date) = ?");
+    $stmt1->execute([$currentYear]);
     $totalRequests = $stmt1->fetchColumn();
 
-    $stmt2 = $pdo->query("SELECT COUNT(*) as total_approved FROM tb_visitor_requests WHERE status = 'Final Approved' AND YEAR(tour_date) = $currentYear");
+    $stmt2 = $pdo->prepare("SELECT COUNT(*) as total_approved FROM tb_visitor_requests WHERE status = 'Final Approved' AND YEAR(tour_date) = ?");
+    $stmt2->execute([$currentYear]);
     $totalApproved = $stmt2->fetchColumn();
 
     $stmt3 = $pdo->query("SELECT tour_date FROM tb_visitor_requests WHERE status = 'Final Approved' AND tour_date >= CURDATE() ORDER BY tour_date ASC LIMIT 1");
     $nextVisit = $stmt3->fetchColumn() ?: 'None';
 
     // 2. Monthly Stats (Bar Chart)
-    $stmtMonthly = $pdo->query("
+    $stmtMonthly = $pdo->prepare("
         SELECT MONTH(tour_date) as month_num, COUNT(*) as cnt 
         FROM tb_visitor_requests 
-        WHERE YEAR(tour_date) = $currentYear 
+        WHERE YEAR(tour_date) = ? 
         GROUP BY MONTH(tour_date)
         ORDER BY month_num
     ");
+    $stmtMonthly->execute([$currentYear]);
     $monthlyDataRaw = $stmtMonthly->fetchAll();
     
     // Fill 12 months with 0 by default
@@ -38,7 +41,8 @@ try {
     }
 
     // 3. Category Stats (Pie Chart)
-    $stmtCategory = $pdo->query("SELECT category, COUNT(*) as cnt FROM tb_visitor_requests WHERE YEAR(tour_date) = $currentYear GROUP BY category");
+    $stmtCategory = $pdo->prepare("SELECT category, COUNT(*) as cnt FROM tb_visitor_requests WHERE YEAR(tour_date) = ? GROUP BY category");
+    $stmtCategory->execute([$currentYear]);
     $categoryDataRaw = $stmtCategory->fetchAll();
     $categories = [];
     $categoryCounts = [];
@@ -48,7 +52,8 @@ try {
     }
 
     // 4. Status Stats (Doughnut Chart)
-    $stmtStatus = $pdo->query("SELECT status, COUNT(*) as cnt FROM tb_visitor_requests WHERE YEAR(tour_date) = $currentYear GROUP BY status");
+    $stmtStatus = $pdo->prepare("SELECT status, COUNT(*) as cnt FROM tb_visitor_requests WHERE YEAR(tour_date) = ? GROUP BY status");
+    $stmtStatus->execute([$currentYear]);
     $statusDataRaw = $stmtStatus->fetchAll();
     $statuses = [];
     $statusCounts = [];
