@@ -107,11 +107,11 @@
                 <p style="color:var(--text-muted); margin:0;">Real-time visitor processing metrics</p>
             </div>
         </div>
-        <div style="display:flex; gap:10px; align-items:center;">
-             <span id="userNameDisplay" style="font-weight:600; color:var(--text-muted)">...</span>
-             <a href="portal.html" class="btn btn-sm btn-outline" style="border:1px solid var(--border); color:var(--text-dark); background:white;">🏠 Back to Portal</a>
-             <a href="admin.html" class="btn btn-secondary"><i data-lucide="list"></i> Approval List</a>
-             <button class="btn btn-sm btn-outline" style="border:none;" onclick="fetch('api_auth.php?action=logout', {method:'POST'}).then(()=>window.location.href='login.html')">Logout</button>
+        <div style="display:flex; gap:8px; align-items:center;">
+             <span id="userNameDisplay" style="font-weight:600; color:var(--text-muted); margin-right:10px;">...</span>
+             <a href="portal.html" style="padding: 8px 16px; border:1px solid #cbd5e1; background: white; border-radius:6px; text-decoration:none; color:var(--text-dark); font-weight:500; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; font-size:14px;">🏠 Back to Portal</a>
+             <a href="admin.html" style="padding: 8px 16px; background: var(--primary); border:1px solid var(--primary); border-radius:6px; text-decoration:none; color:white; font-weight:500; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; font-size:14px;">📝 Approval List</a>
+             <button style="padding: 8px 16px; border:1px solid #cbd5e1; background: #f1f5f9; border-radius:6px; cursor:pointer; color:var(--text-dark); font-weight:500; font-size:14px; white-space:nowrap;" onclick="fetch('api_auth.php?action=logout', {method:'POST'}).then(()=>window.location.href='login.html')">Logout</button>
         </div>
     </div>
 

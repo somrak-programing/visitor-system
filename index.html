@@ -92,11 +92,11 @@
 </script>
 
 <div class="container">
-    <div style="text-align: right; margin-bottom: 10px; font-size: 0.9rem;">
-        Logged in as: <strong id="userNameDisplay">...</strong> 
-        <a href="portal.html" style="margin-left:10px; padding: 4px 8px; border:1px solid #cbd5e1; background: white; border-radius:4px; text-decoration:none; color:var(--text-dark); font-weight:500;">🏠 Back to Portal</a>
-        <a href="my_requests.html" style="margin-left:5px; padding: 4px 8px; border:1px solid #cbd5e1; background: white; border-radius:4px; text-decoration:none; color:var(--primary); font-weight:500;">My History</a>
-        <button onclick="logout()" style="margin-left:5px; padding: 4px 8px; border:none; background: #e2e8f0; border-radius:4px; cursor:pointer;">Logout</button>
+    <div style="text-align: right; margin-bottom: 15px; display:flex; justify-content:flex-end; align-items:center; gap:8px;">
+        <span style="font-size: 0.9rem; margin-right: 5px;">Logged in as: <strong id="userNameDisplay" style="color:var(--text-dark);">...</strong></span>
+        <a href="portal.html" style="padding: 8px 16px; border:1px solid #cbd5e1; background: white; border-radius:6px; text-decoration:none; color:var(--text-dark); font-weight:500; font-size:14px; display:inline-flex; align-items:center; gap:6px;">🏠 Back to Portal</a>
+        <a href="my_requests.html" style="padding: 8px 16px; border:1px solid var(--primary); background: var(--primary); border-radius:6px; text-decoration:none; color:white; font-weight:500; font-size:14px; display:inline-flex; align-items:center; gap:6px;">📋 My History</a>
+        <button onclick="logout()" style="padding: 8px 16px; border:1px solid #cbd5e1; background: #f1f5f9; border-radius:6px; cursor:pointer; color:var(--text-dark); font-weight:500; font-size:14px; white-space:nowrap;">Logout</button>
     </div>
     <div class="glass-panel">
         <header style="display: flex; align-items: center; gap: 15px;">
