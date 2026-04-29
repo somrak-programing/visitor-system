@@ -271,8 +271,8 @@
             const res = await fetch('api_auth.php?action=check');
             const data = await res.json();
             
-            if (data.status !== 'success' || !['Admin', 'MD'].includes(data.session.role)) {
-                alert('Unauthorized Access');
+            if (data.status !== 'success' || data.session.role !== 'Admin') {
+                alert('Unauthorized Access. Only Admin can manage users.');
                 window.location.href = 'portal.html';
                 return;
             }

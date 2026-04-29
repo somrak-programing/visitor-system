@@ -2,9 +2,9 @@
 require_once 'db.php';
 header('Content-Type: application/json');
 
-// Check authorization (Must be logged in and role must be Admin or MD)
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['Admin', 'MD'])) {
-    echo json_encode(["status" => "error", "message" => "Unauthorized access."]);
+// Check authorization (Must be logged in and role must be Admin)
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+    echo json_encode(["status" => "error", "message" => "Unauthorized access. Only Admin can manage users."]);
     exit;
 }
 

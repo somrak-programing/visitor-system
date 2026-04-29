@@ -158,8 +158,8 @@
             document.getElementById('userNameDisplay').innerText = res.session.name + ' (' + res.session.role + ')';
             userRole = res.session.role;
             
-            // Show User Management card only for Admin and MD
-            if (['Admin', 'MD'].includes(userRole)) {
+            // Show User Management card only for Admin
+            if (userRole === 'Admin') {
                 const userMgmtCard = document.getElementById('userMgmtCard');
                 if (userMgmtCard) userMgmtCard.style.display = 'flex';
             }
