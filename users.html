@@ -12,14 +12,44 @@
             min-height: 100vh;
         }
         .sidebar {
-            width: 250px;
-            background: #fff;
-            border-right: 1px solid var(--border);
-            padding: 2rem;
+            width: 240px;
+            background: #1e293b;
+            border-right: none;
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 0.75rem;
+            margin-bottom: 2rem;
+        }
+        .sidebar-logo img {
+            height: 36px;
+            object-fit: contain;
+            filter: brightness(0) invert(1);
+        }
+        .sidebar-brand {
+            color: white;
+            font-weight: 700;
+            font-size: 0.95rem;
+            line-height: 1.2;
+        }
+        .sidebar-section {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #64748b;
+            padding: 0 0.75rem;
+            margin-bottom: 0.5rem;
+            margin-top: 1.5rem;
         }
         .main-content {
             flex: 1;
-            padding: 2rem 3rem;
+            padding: 2rem 2.5rem;
             background: var(--bg-color);
         }
         .header {
@@ -31,21 +61,56 @@
         .nav-item {
             display: flex;
             align-items: center;
-            padding: 0.75rem 1rem;
-            color: var(--text-muted);
+            padding: 0.65rem 0.75rem;
+            color: #94a3b8;
             text-decoration: none;
             border-radius: 8px;
-            margin-bottom: 0.5rem;
-            transition: all 0.3s ease;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s ease;
+            font-size: 0.875rem;
+            font-weight: 500;
+            gap: 0.625rem;
         }
-        .nav-item:hover, .nav-item.active {
-            background: rgba(37, 99, 235, 0.1);
-            color: var(--primary);
+        .nav-item:hover {
+            background: rgba(255,255,255,0.07);
+            color: #f1f5f9;
+        }
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
         }
         .nav-item i {
-            margin-right: 0.75rem;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+        .nav-logout {
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid #334155;
+        }
+        .btn-logout-sidebar {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            width: 100%;
+            padding: 0.65rem 0.75rem;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: transparent;
+            color: #f87171;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-logout-sidebar:hover {
+            background: rgba(248,113,113,0.15);
+            border-color: #f87171;
+        }
+        .btn-logout-sidebar i {
+            width: 18px;
+            height: 18px;
         }
         
         .table-container {
@@ -161,7 +226,12 @@
 <div class="layout-container" style="display:none;" id="appLayout">
     <!-- Sidebar -->
     <aside class="sidebar">
-        <h2 style="color:var(--primary); margin-bottom: 2rem;">Admin Portal</h2>
+        <div class="sidebar-logo">
+            <img src="logo.png" alt="TCP Logo">
+            <span class="sidebar-brand">Admin<br>Portal</span>
+        </div>
+
+        <div class="sidebar-section">Navigation</div>
         <nav>
             <a href="portal.html" class="nav-item">
                 <i data-lucide="layout-dashboard"></i> Enterprise Portal
@@ -169,10 +239,13 @@
             <a href="users.html" class="nav-item active">
                 <i data-lucide="users"></i> User Management
             </a>
-            <a href="#" class="nav-item" style="color: #ef4444; margin-top: 2rem;" onclick="fetch('api_auth.php?action=logout', {method:'POST'}).then(()=>window.location.href='login.html')">
-                <i data-lucide="log-out"></i> Logout
-            </a>
         </nav>
+
+        <div class="nav-logout">
+            <button class="btn-logout-sidebar" onclick="fetch('api_auth.php?action=logout', {method:'POST'}).then(()=>window.location.href='login.html')">
+                <i data-lucide="log-out"></i> Logout
+            </button>
+        </div>
     </aside>
 
     <!-- Main Content -->
@@ -185,10 +258,10 @@
                     <p style="margin: 0.5rem 0 0 0; color: var(--text-muted);">Manage user access and roles for the enterprise systems.</p>
                 </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <span style="color: var(--text-muted); font-size: 0.9rem;" id="userProfile"></span>
-                <button class="btn btn-primary" onclick="openModal()">
-                    <i data-lucide="plus" style="width: 18px; height: 18px; margin-right: 8px; vertical-align: middle;"></i>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span id="userProfile" style="font-size: 0.85rem; color: var(--text-muted); background: #f1f5f9; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border);"></span>
+                <button onclick="openModal()" style="padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: background 0.2s; box-shadow: 0 2px 8px rgba(37,99,235,0.3);" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='var(--primary)'">
+                    <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
                     Add New User
                 </button>
             </div>
