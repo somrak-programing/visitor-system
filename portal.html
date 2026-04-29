@@ -155,7 +155,7 @@
             window.location.href = 'login.html';
         } else {
             document.body.style.display = 'block';
-            document.getElementById('userNameDisplay').innerText = res.session.name + ' (' + res.session.role + ')';
+            document.getElementById('userNameDisplay').innerText = res.session.name;
             userRole = res.session.role;
             
             // Show User Management card only for Admin

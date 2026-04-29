@@ -31,7 +31,7 @@
             window.location.href = 'login.html';
         } else {
             document.body.style.display = 'flex'; // our css framework uses flex on body
-            document.getElementById('userNameDisplay').innerText = res.session.name + ' (' + res.session.role + ')';
+            document.getElementById('userNameDisplay').innerText = res.session.name;
             window.userRole = res.session.role; // Store role for approve/reject button visibility
             fetchRequests(); // Load table AFTER role is known
         }

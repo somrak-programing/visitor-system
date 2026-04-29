@@ -34,7 +34,7 @@
             window.location.href = 'login.html';
         } else {
             document.body.style.display = 'flex'; // our css framework uses flex on body
-            document.getElementById('userNameDisplay').innerText = res.session.name + ' (' + res.session.role + ')';
+            document.getElementById('userNameDisplay').innerText = res.session.name;
         }
     });
     function logout() {
