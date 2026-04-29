@@ -57,6 +57,25 @@
             </div>
         </header>
 
+        <!-- Search & Filter Bar -->
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+            <div style="position: relative; flex: 1; min-width: 200px;">
+                <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:#94a3b8;"></i>
+                <input type="text" id="searchInput" placeholder="Search by company, requester, or Req ID..." oninput="filterTable()"
+                    style="width:100%; padding: 9px 12px 9px 36px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s;"
+                    onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='#e2e8f0'">
+            </div>
+            <select id="statusFilter" onchange="filterTable()"
+                style="padding: 9px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; color: var(--text-dark); background: white; outline: none; cursor: pointer;">
+                <option value="">All Statuses</option>
+                <option value="Pending PM">Pending PM</option>
+                <option value="Pending MD">Pending MD</option>
+                <option value="Final Approved">Final Approved</option>
+                <option value="Rejected">Rejected</option>
+            </select>
+            <span id="searchCount" style="font-size:13px; color:var(--text-muted); white-space:nowrap;"></span>
+        </div>
+
         <table class="modern-table" id="requestTable">
             <thead>
                 <tr>
@@ -144,6 +163,27 @@
     // Format request ID as VR-0001
     function fmtId(id) { return 'VR-' + String(id).padStart(4, '0'); }
 
+    function filterTable() {
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        const status = document.getElementById('statusFilter').value.toLowerCase();
+        const rows = document.querySelectorAll('#requestTbody tr[data-searchable]');
+        let visible = 0;
+        rows.forEach(row => {
+            const text = row.getAttribute('data-searchable').toLowerCase();
+            const rowStatus = row.getAttribute('data-status').toLowerCase();
+            const matchSearch = !query || text.includes(query);
+            const matchStatus = !status || rowStatus.includes(status);
+            if (matchSearch && matchStatus) {
+                row.style.display = '';
+                visible++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        const total = rows.length;
+        document.getElementById('searchCount').textContent = total > 0 ? `Showing ${visible} of ${total}` : '';
+    }
+
     async function fetchRequests() {
         try {
             const res = await fetch('api_admin.php?action=list');
@@ -188,6 +228,8 @@
 
                     const tr = document.createElement('tr');
                     tr.style.cursor = 'pointer';
+                    tr.setAttribute('data-searchable', `${fmtId(req.request_id)} ${req.company_name} ${req.requester_name || ''} ${req.tour_date}`);
+                    tr.setAttribute('data-status', req.status);
                     tr.addEventListener('click', () => viewDetail(req.request_id));
                     tr.innerHTML = `
                         <td>${fmtId(req.request_id)}</td>
@@ -202,6 +244,8 @@
             } else {
                 tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">${result.message}</td></tr>`;
             }
+            // Apply any existing search/filter and update count
+            filterTable();
         } catch (e) {
             console.error(e);
         }
