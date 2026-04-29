@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Visitor Requests History</title>
+    <link rel="stylesheet" href="index.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .history-container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .status-pending-pm { background: #fee2e2; color: #ef4444; }
+        .status-pending-md { background: #fef3c7; color: #d97706; }
+        .status-approved { background: #d1fae5; color: #059669; }
+        .status-rejected { background: #fecaca; color: #dc2626; }
+    </style>
+</head>
+<body>
+<script>
+    document.body.style.display = 'none'; // hide until authenticated
+    fetch('api_auth.php?action=check').then(r=>r.json()).then(res => {
+        if(res.status !== 'success') {
+            window.location.href = 'login.html';
+        } else {
+            document.body.style.display = 'flex'; // our css framework uses flex on body
+            document.getElementById('userNameDisplay').innerText = res.session.name + ' (' + res.session.role + ')';
+        }
+    });
+    function logout() {
+        fetch('api_auth.php?action=logout', {method:'POST'}).then(() => window.location.href = 'login.html');
+    }
+</script>
+
+<div class="container history-container">
+    <div style="text-align: right; margin-bottom: 10px; font-size: 0.9rem;">
+        Logged in as: <strong id="userNameDisplay">...</strong> 
+        <a href="portal.html" style="margin-left:10px; padding: 4px 8px; border:1px solid #cbd5e1; background: white; border-radius:4px; text-decoration:none; color:var(--text-dark); font-weight:500;">🏠 Back to Portal</a>
+        <a href="index.html" style="margin-left:5px; padding: 4px 8px; border:1px solid #cbd5e1; background: white; border-radius:4px; text-decoration:none; color:var(--primary); font-weight:500;">New Request</a>
+        <button onclick="logout()" style="margin-left:5px; padding: 4px 8px; border:none; background: #e2e8f0; border-radius:4px; cursor:pointer;">Logout</button>
+    </div>
+    <div class="glass-panel">
+        <header>
+            <h1>My Request History</h1>
+            <p>Track the status of your submitted visitor requests</p>
+        </header>
+
+        <table class="modern-table" id="requestTable">
+            <thead>
+                <tr>
+                    <th>Req ID</th>
+                    <th>Company Name</th>
+                    <th>Tour Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="requestTbody">
+                <tr><td colspan="5" style="text-align:center;">Loading history...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function fmtId(id) { return 'VR-' + String(id).padStart(4, '0'); }
+document.addEventListener('DOMContentLoaded', () => {
+    fetchRequests();
+
+    async function fetchRequests() {
+        try {
+            const res = await fetch('api_my_requests.php?action=list');
+            const result = await res.json();
+            const tbody = document.getElementById('requestTbody');
+            
+            if (result.status === 'success') {
+                tbody.innerHTML = '';
+                
+                if(result.data.length === 0) {
+                     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">You have not submitted any requests yet.</td></tr>';
+                     return;
+                }
+
+                result.data.forEach(req => {
+                    let badgeClass = '';
+                    let statusIcon = '';
+                    let actionBtn = `<span style="color:var(--text-muted);font-size:0.85rem;">Processing...</span>`;
+
+                    if (req.status === 'Pending PM' || req.status === 'Pending MD') {
+                        if (req.status === 'Pending PM') {
+                            badgeClass = 'status-pending-pm';
+                        } else {
+                            badgeClass = 'status-pending-md';
+                        }
+                        statusIcon = '<i data-lucide="clock" style="width:14px;height:14px;"></i>';
+                        actionBtn = `<a href="index.html?edit=${req.request_id}" class="btn btn-sm btn-outline" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;"><i data-lucide="edit" style="width:14px;height:14px;"></i> Edit</a>`;
+                    } else if (req.status === 'Final Approved') {
+                        badgeClass = 'status-approved';
+                        statusIcon = '<i data-lucide="check-circle" style="width:14px;height:14px;"></i>';
+                        actionBtn = `<a href="generate_pdf.php?request_id=${req.request_id}" target="_blank" class="btn btn-sm" style="background:#059669;color:white;text-decoration:none;display:inline-flex;align-items:center;gap:4px;"><i data-lucide="download" style="width:14px;height:14px;"></i> Get Pass</a>`;
+                    } else if (req.status === 'Rejected') {
+                        badgeClass = 'status-rejected';
+                        statusIcon = '<i data-lucide="x-circle" style="width:14px;height:14px;"></i>';
+                        actionBtn = `<a href="index.html?edit=${req.request_id}" class="btn btn-sm btn-outline" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-bottom:4px;"><i data-lucide="edit" style="width:14px;height:14px;"></i> Edit</a><br>
+                                     <div style="font-size:0.8rem;color:var(--text-muted);max-width:200px;line-height:1.2;">Reason: <strong style="color:#dc2626;">${req.reject_reason || 'N/A'}</strong></div>`;
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${fmtId(req.request_id)}</td>
+                        <td><strong>${req.company_name}</strong><br><small style="color:var(--text-muted)">${req.category}</small></td>
+                        <td>${req.tour_date}</td>
+                        <td><span class="status-badge ${badgeClass}">${statusIcon} ${req.status}</span></td>
+                        <td>${actionBtn}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                lucide.createIcons();
+            } else {
+                tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">${result.message}</td></tr>`;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+});
+</script>
+
+</body>
+</html>

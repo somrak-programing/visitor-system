@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Request Approval Dashboard</title>
+    <link rel="stylesheet" href="index.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .dashboard-container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .status-pending-pm { background: #fee2e2; color: #ef4444; }
+        .status-pending-md { background: #fef3c7; color: #d97706; }
+        .status-approved { background: #d1fae5; color: #059669; }
+    </style>
+</head>
+<body>
+<script>
+    document.body.style.display = 'none'; // hide until authenticated
+    fetch('api_auth.php?action=check').then(r=>r.json()).then(res => {
+        if(res.status !== 'success' || (res.session.role === 'Sales')) {
+            window.location.href = 'login.html';
+        } else {
+            document.body.style.display = 'flex'; // our css framework uses flex on body
+            document.getElementById('userNameDisplay').innerText = res.session.name + ' (' + res.session.role + ')';
+            window.userRole = res.session.role; // Store role for approve/reject button visibility
+            fetchRequests(); // Load table AFTER role is known
+        }
+    });
+    function logout() {
+        fetch('api_auth.php?action=logout', {method:'POST'}).then(() => window.location.href = 'login.html');
+    }
+</script>
+
+<div class="container dashboard-container">
+    <div style="text-align: right; margin-bottom: 10px; font-size: 0.9rem;">
+        Logged in as: <strong id="userNameDisplay">...</strong> 
+        <a href="portal.html" style="margin-left:10px; padding: 4px 8px; border:1px solid #cbd5e1; background: white; border-radius:4px; text-decoration:none; color:var(--text-dark); font-weight:500;">🏠 Back to Portal</a>
+        <a href="dashboard.html" style="margin-left:5px; padding: 4px 8px; border:1px solid #cbd5e1; background: white; border-radius:4px; text-decoration:none; color:var(--primary); font-weight:500;">View Dashboard</a>
+        <button onclick="logout()" style="margin-left:5px; padding: 4px 8px; border:none; background: #e2e8f0; border-radius:4px; cursor:pointer;">Logout</button>
+    </div>
+    <div class="glass-panel">
+        <header>
+            <h1>Approval Dashboard</h1>
+            <p>Admin / Manager Workflow System</p>
+        </header>
+
+        <table class="modern-table" id="requestTable">
+            <thead>
+                <tr>
+                    <th>Req ID</th>
+                    <th>Company Name</th>
+                    <th>Requester</th>
+                    <th>Tour Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="requestTbody">
+                <tr><td colspan="6" style="text-align:center;">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div id="detailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; overflow-y:auto; animation: fadeIn 0.3s ease;">
+    <div style="max-width:800px; margin:40px auto; background:white; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.2); overflow:hidden; animation: slideInRight 0.3s ease;">
+        <!-- Modal Header -->
+        <div id="modalHeader" style="padding:20px 28px; background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color:white;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h2 style="margin:0; font-size:1.3rem;" id="modalTitle">Request Details</h2>
+                    <p style="margin:4px 0 0; opacity:0.85; font-size:0.85rem;" id="modalSubtitle"></p>
+                </div>
+                <button onclick="closeDetailModal()" style="background:rgba(255,255,255,0.2); border:none; color:white; width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:1.2rem;">✕</button>
+            </div>
+        </div>
+
+        <!-- Modal Body -->
+        <div style="padding:24px 28px;">
+            <!-- Status & Requester -->
+            <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+                <span id="modalStatus" class="status-badge" style="font-size:0.85rem;"></span>
+                <span id="modalRequester" style="font-size:0.85rem; color:var(--text-muted);"></span>
+                <span id="modalCreatedAt" style="font-size:0.85rem; color:var(--text-muted);"></span>
+            </div>
+
+            <!-- General Info -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 20px; margin-bottom:24px; padding:16px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0;">
+                <div><div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Category</div><div style="font-weight:600;" id="modalCategory"></div></div>
+                <div><div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Purpose</div><div style="font-weight:600;" id="modalPurpose"></div></div>
+                <div><div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Tour Date</div><div style="font-weight:600;" id="modalTourDate"></div></div>
+                <div><div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Souvenir</div><div style="font-weight:600;" id="modalSouvenir"></div></div>
+            </div>
+
+            <!-- Visitors -->
+            <h4 style="margin:0 0 10px; font-size:0.95rem;">👥 External Visitors</h4>
+            <table class="modern-table" style="margin-bottom:20px;">
+                <thead><tr><th>#</th><th>Full Name</th><th>Job Title</th></tr></thead>
+                <tbody id="modalVisitorsTbody"></tbody>
+            </table>
+
+            <!-- Schedule -->
+            <h4 style="margin:0 0 10px; font-size:0.95rem;">📅 Schedule</h4>
+            <table class="modern-table" style="margin-bottom:20px;">
+                <thead><tr><th>Time</th><th>Activity</th><th>Remark</th></tr></thead>
+                <tbody id="modalScheduleTbody"></tbody>
+            </table>
+
+            <!-- Routing -->
+            <h4 style="margin:0 0 10px; font-size:0.95rem;">🗺️ Route Course</h4>
+            <div id="modalRouteDiagram" style="margin-bottom:20px; padding:16px; background:linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%); border-radius:10px; border:1px solid #bbf7d0;"></div>
+
+            <!-- TCP Members -->
+            <h4 style="margin:0 0 10px; font-size:0.95rem;">🏢 TCP Members (Internal)</h4>
+            <div id="modalTcpMembers" style="margin-bottom:20px;"></div>
+
+            <!-- Reject Reason (if rejected) -->
+            <div id="modalRejectReasonSection" style="display:none; margin-bottom:20px; padding:12px 16px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px;">
+                <strong style="color:#dc2626;">Rejection Reason:</strong>
+                <p id="modalRejectReason" style="margin:4px 0 0; color:#991b1b;"></p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div id="modalActions" style="display:flex; gap:10px; justify-content:flex-end; padding-top:16px; border-top:1px solid #e2e8f0;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Format request ID as VR-0001
+    function fmtId(id) { return 'VR-' + String(id).padStart(4, '0'); }
+
+    async function fetchRequests() {
+        try {
+            const res = await fetch('api_admin.php?action=list');
+            const result = await res.json();
+            const tbody = document.getElementById('requestTbody');
+            
+            if (result.status === 'success') {
+                tbody.innerHTML = '';
+                
+                if(result.data.length === 0) {
+                     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No pending requests.</td></tr>';
+                     return;
+                }
+
+                result.data.forEach(req => {
+                    let badgeClass = '';
+                    let actionBtn = '';
+
+                    if (req.status === 'Pending PM') {
+                        badgeClass = 'status-pending-pm';
+                        if (window.userRole === 'PM' || window.userRole === 'Admin') {
+                            actionBtn = `<button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); approveReq(${req.request_id}, '${req.status}')">PM Approve</button>
+                                         <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); rejectReq(${req.request_id})" style="margin-left:4px;">Reject</button>`;
+                        } else {
+                            actionBtn = `<span style="color:var(--text-muted);font-size:0.85rem;">Waiting for PM</span>`;
+                        }
+                    } else if (req.status === 'Pending MD') {
+                        badgeClass = 'status-pending-md';
+                        if (window.userRole === 'MD' || window.userRole === 'Admin') {
+                            actionBtn = `<button class="btn btn-sm btn-primary" style="background:#d97706;" onclick="event.stopPropagation(); approveReq(${req.request_id}, '${req.status}')">MD Approve</button>
+                                         <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); rejectReq(${req.request_id})" style="margin-left:4px;">Reject</button>`;
+                        } else {
+                            actionBtn = `<span style="color:var(--text-muted);font-size:0.85rem;">Waiting for MD</span>`;
+                        }
+                    } else if (req.status === 'Final Approved') {
+                        badgeClass = 'status-approved';
+                        actionBtn = `<a href="generate_pdf.php?request_id=${req.request_id}" target="_blank" class="btn btn-sm" style="background:#059669;color:white;" onclick="event.stopPropagation();">View PDF Pass</a>`;
+                    } else if (req.status === 'Rejected') {
+                        badgeClass = 'status-pending-pm';
+                        actionBtn = `<span style="color:var(--text-muted);font-size:0.85rem;">Rejected</span>`;
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.style.cursor = 'pointer';
+                    tr.addEventListener('click', () => viewDetail(req.request_id));
+                    tr.innerHTML = `
+                        <td>${fmtId(req.request_id)}</td>
+                        <td><strong style="color:var(--primary);">${req.company_name}</strong><br><small style="color:var(--text-muted)">${req.category}</small></td>
+                        <td style="font-size:0.85rem;">${req.requester_name || '-'}</td>
+                        <td>${req.tour_date}</td>
+                        <td><span class="status-badge ${badgeClass}">${req.status}</span></td>
+                        <td>${actionBtn}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">${result.message}</td></tr>`;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function approveReq(id, currentStatus) {
+        if(!confirm(`Proceed with approving Request #${id}?`)) return;
+        
+        const formData = new FormData();
+        formData.append('request_id', id);
+        formData.append('current_status', currentStatus);
+
+        const res = await fetch('api_admin.php?action=approve', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await res.json();
+        if(result.status === 'success') {
+            alert(result.message);
+            fetchRequests(); // reload table
+        } else {
+            alert("Error: " + result.message);
+        }
+    }
+
+    async function rejectReq(id) {
+        const reason = prompt(`Enter reason for rejecting Request #${id}:`);
+        if (reason === null) return; // User cancelled
+        if (reason.trim() === '') {
+            alert("Rejection reason is required.");
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('request_id', id);
+        formData.append('reject_reason', reason.trim());
+
+        const res = await fetch('api_admin.php?action=reject', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await res.json();
+        if(result.status === 'success') {
+            alert(result.message);
+            fetchRequests(); // reload table
+        } else {
+            alert("Error: " + result.message);
+        }
+    }
+
+    // --- DETAIL MODAL ---
+    async function viewDetail(id) {
+        try {
+            const res = await fetch(`api_admin.php?action=detail&id=${id}`);
+            const result = await res.json();
+            if (result.status !== 'success') {
+                alert('Error: ' + result.message);
+                return;
+            }
+            const d = result.data;
+
+            // Header
+            document.getElementById('modalTitle').textContent = `${fmtId(d.request_id)} — ${d.company_name}`;
+            document.getElementById('modalSubtitle').textContent = `${d.category} • ${d.purpose}`;
+
+            // Status badge
+            const statusEl = document.getElementById('modalStatus');
+            statusEl.textContent = d.status;
+            statusEl.className = 'status-badge';
+            if (d.status === 'Pending PM') statusEl.classList.add('status-pending-pm');
+            else if (d.status === 'Pending MD') statusEl.classList.add('status-pending-md');
+            else if (d.status === 'Final Approved') statusEl.classList.add('status-approved');
+            else statusEl.style.cssText = 'background:#fee2e2;color:#ef4444;';
+
+            document.getElementById('modalRequester').textContent = `👤 ${d.requester_name || 'Unknown'}`;
+            document.getElementById('modalCreatedAt').textContent = `📅 Created: ${d.created_at}`;
+
+            // General Info
+            document.getElementById('modalCategory').textContent = d.category;
+            document.getElementById('modalPurpose').textContent = d.purpose;
+            document.getElementById('modalTourDate').textContent = d.tour_date;
+            document.getElementById('modalSouvenir').textContent = d.souvenir || 'None';
+
+            // Visitors
+            const visTbody = document.getElementById('modalVisitorsTbody');
+            if (d.visitors && d.visitors.length > 0) {
+                visTbody.innerHTML = d.visitors.map((v, i) => `<tr><td>${i+1}</td><td>${v.fullname}</td><td>${v.job_title || '-'}</td></tr>`).join('');
+            } else {
+                visTbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">No visitors</td></tr>';
+            }
+
+            // Schedule
+            const schTbody = document.getElementById('modalScheduleTbody');
+            if (d.schedules && d.schedules.length > 0) {
+                schTbody.innerHTML = d.schedules.map(s => `<tr><td>${s.start_time} - ${s.end_time}</td><td>${s.activity}</td><td>${s.remark || '-'}</td></tr>`).join('');
+            } else {
+                schTbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">No schedule</td></tr>';
+            }
+
+            // Routing Diagram
+            const routeDiv = document.getElementById('modalRouteDiagram');
+            if (d.routing_course) {
+                const stops = d.routing_course.split(' -> ').map(s => s.trim()).filter(Boolean);
+                let html = '<div style="display:flex; align-items:center; flex-wrap:wrap; gap:0; padding:8px 0;">';
+                stops.forEach((stop, i) => {
+                    const isFirst = i === 0;
+                    const isLast = i === stops.length - 1;
+                    let circleStyle = 'background:white; border:2.5px solid #2563eb; color:#2563eb;';
+                    if (isFirst) circleStyle = 'background:#dcfce7; border:2.5px solid #22c55e; color:#166534;';
+                    if (isLast) circleStyle = 'background:#dbeafe; border:2.5px solid #3b82f6; color:#1e40af;';
+                    html += `<div style="display:flex;flex-direction:column;align-items:center;">
+                        <div style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;box-shadow:0 2px 8px rgba(37,99,235,0.12);${circleStyle}">${i+1}</div>
+                        <div style="font-size:0.7rem;font-weight:600;margin-top:5px;text-align:center;max-width:80px;line-height:1.2;">${stop}</div>
+                    </div>`;
+                    if (i < stops.length - 1) {
+                        html += `<div style="display:flex;align-items:center;padding:0 4px;transform:translateY(-10px);"><div style="width:28px;height:2px;background:linear-gradient(90deg,#2563eb,#22c55e);position:relative;"><div style="position:absolute;right:-1px;top:-4px;border:5px solid transparent;border-left:6px solid #22c55e;"></div></div></div>`;
+                    }
+                });
+                html += '</div>';
+                routeDiv.innerHTML = html;
+            } else {
+                routeDiv.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">No route specified</span>';
+            }
+
+            // TCP Members
+            const tcpDiv = document.getElementById('modalTcpMembers');
+            if (d.tcp_members && d.tcp_members.length > 0) {
+                tcpDiv.innerHTML = d.tcp_members.map(m => `<span style="display:inline-block;padding:4px 12px;margin:3px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;font-size:0.82rem;font-weight:500;">${m}</span>`).join('');
+            } else {
+                tcpDiv.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">No TCP members</span>';
+            }
+
+            // Reject reason
+            const rejectSection = document.getElementById('modalRejectReasonSection');
+            if (d.status === 'Rejected' && d.reject_reason) {
+                document.getElementById('modalRejectReason').textContent = d.reject_reason;
+                rejectSection.style.display = 'block';
+            } else {
+                rejectSection.style.display = 'none';
+            }
+
+            // Action buttons in modal
+            const actionsDiv = document.getElementById('modalActions');
+            let actionsHtml = '';
+            if (d.status === 'Pending PM' && (window.userRole === 'PM' || window.userRole === 'Admin')) {
+                actionsHtml = `<button class="btn btn-sm btn-danger" onclick="closeDetailModal(); rejectReq(${d.request_id})" style="padding:8px 20px;">Reject</button>
+                               <button class="btn btn-sm btn-primary" onclick="closeDetailModal(); approveReq(${d.request_id}, 'Pending PM')" style="padding:8px 20px;">✅ PM Approve</button>`;
+            } else if (d.status === 'Pending MD' && (window.userRole === 'MD' || window.userRole === 'Admin')) {
+                actionsHtml = `<button class="btn btn-sm btn-danger" onclick="closeDetailModal(); rejectReq(${d.request_id})" style="padding:8px 20px;">Reject</button>
+                               <button class="btn btn-sm btn-primary" style="background:#d97706;padding:8px 20px;" onclick="closeDetailModal(); approveReq(${d.request_id}, 'Pending MD')">✅ MD Approve</button>`;
+            } else if (d.status === 'Final Approved') {
+                actionsHtml = `<a href="generate_pdf.php?request_id=${d.request_id}" target="_blank" class="btn btn-sm" style="background:#059669;color:white;padding:8px 20px;">📄 View PDF Pass</a>`;
+            }
+            actionsHtml += `<button class="btn btn-sm" onclick="closeDetailModal()" style="background:#e2e8f0;color:var(--text-dark);padding:8px 20px;">Close</button>`;
+            actionsDiv.innerHTML = actionsHtml;
+
+            // Show modal
+            document.getElementById('detailModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        } catch (e) {
+            console.error(e);
+            alert('Failed to load request details.');
+        }
+    }
+
+    function closeDetailModal() {
+        document.getElementById('detailModal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('detailModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDetailModal();
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeDetailModal();
+    });
+</script>
+
+</body>
+</html>

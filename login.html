@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Visitor Request System</title>
+    <link rel="stylesheet" href="index.css">
+    <style>
+        .login-box {
+            max-width: 400px;
+            margin: 10vh auto;
+            text-align: center;
+        }
+        .login-box .glass-panel {
+            padding: 3rem 2.5rem;
+        }
+        .demo-credentials {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            text-align: left;
+            border: 1px dashed var(--border);
+        }
+        .demo-credentials ul {
+            padding-left: 1.5rem;
+            margin: 0.5rem 0 0 0;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-box">
+            <div class="glass-panel">
+                <header>
+                    <h1 style="color:var(--primary);">TCP Gateway</h1>
+                    <p>Visitor Request System</p>
+                </header>
+                
+                <form id="loginForm" onsubmit="event.preventDefault();">
+                    <div class="form-group" style="text-align:left;">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    <div class="form-group" style="text-align:left;">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="btnLogin" style="width:100%; margin-top:1rem;">
+                        Sign In
+                    </button>
+                    <div id="errorMsg" style="color:var(--danger); font-size:0.85rem; margin-top:1rem; display:none;"></div>
+                </form>
+
+                <div class="demo-credentials">
+                    <strong>Demo Accounts:</strong>
+                    <ul>
+                        <li><b>sales_01</b> : 1234 (Access Form)</li>
+                        <li><b>pm_01</b> : 1234 (Access Dashboard)</li>
+                        <li><b>md_01</b> : 1234 (Access Dashboard)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('btnLogin').addEventListener('click', async () => {
+            const form = document.getElementById('loginForm');
+            if(!form.checkValidity()) { form.reportValidity(); return; }
+
+            const fd = new FormData(form);
+            const btn = document.getElementById('btnLogin');
+            btn.innerText = 'Verifying...';
+            btn.disabled = true;
+
+            const res = await fetch('api_auth.php?action=login', { method: 'POST', body: fd });
+            const result = await res.json();
+
+            if(result.status === 'success') {
+                window.location.href = 'portal.html';
+            } else {
+                const err = document.getElementById('errorMsg');
+                err.innerText = result.message;
+                err.style.display = 'block';
+                btn.innerText = 'Sign In';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Request System</title>
+    <link rel="stylesheet" href="index.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .workflow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .wf-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+            width: 120px;
+            opacity: 0.5;
+            transition: all 0.3s ease;
+        }
+        .wf-step.completed, .wf-step.current {
+            opacity: 1;
+        }
+        .wf-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.75rem;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        .wf-step.completed .wf-icon {
+            background: #dcfce3;
+            color: #166534;
+            border-color: #22c55e;
+        }
+        .wf-step.current .wf-icon {
+            background: #fef3c7;
+            color: #d97706;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+        }
+        .wf-label {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+        .wf-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .wf-line {
+            flex: 1;
+            height: 4px;
+            background: #e2e8f0;
+            margin: 0 10px;
+            transform: translateY(-20px); /* Align with centers of icons */
+            border-radius: 2px;
+        }
+        .wf-line.current {
+            background: linear-gradient(90deg, #22c55e 0%, #f59e0b 100%);
+        }
+    </style>
+</head>
+<body>
+<script>
+    document.body.style.display = 'none'; // hide until authenticated
+    fetch('api_auth.php?action=check').then(r=>r.json()).then(res => {
+        if(res.status !== 'success') {
+            window.location.href = 'login.html';
+        } else {
+            document.body.style.display = 'flex';
+            document.getElementById('userNameDisplay').innerText = res.session.name + ' (' + res.session.role + ')';
+        }
+    });
+    function logout() {
+        fetch('api_auth.php?action=logout', {method:'POST'}).then(() => window.location.href = 'login.html');
+    }
+</script>
+
+<div class="container">
+    <div style="text-align: right; margin-bottom: 10px; font-size: 0.9rem;">
+        Logged in as: <strong id="userNameDisplay">...</strong> 
+        <a href="portal.html" style="margin-left:10px; padding: 4px 8px; border:1px solid #cbd5e1; background: white; border-radius:4px; text-decoration:none; color:var(--text-dark); font-weight:500;">🏠 Back to Portal</a>
+        <a href="my_requests.html" style="margin-left:5px; padding: 4px 8px; border:1px solid #cbd5e1; background: white; border-radius:4px; text-decoration:none; color:var(--primary); font-weight:500;">My History</a>
+        <button onclick="logout()" style="margin-left:5px; padding: 4px 8px; border:none; background: #e2e8f0; border-radius:4px; cursor:pointer;">Logout</button>
+    </div>
+    <div class="glass-panel">
+        <header>
+            <h1>Visitor Request Form</h1>
+            <p>Please fill out the details for the upcoming plant tour</p>
+        </header>
+
+        <!-- Stepper Indicator -->
+        <div class="stepper-header">
+            <div class="step-indicator active" id="indicator-1">
+                1
+                <span class="step-label">General Info</span>
+            </div>
+            <div class="step-indicator" id="indicator-2">
+                2
+                <span class="step-label">Visitors</span>
+            </div>
+            <div class="step-indicator" id="indicator-3">
+                3
+                <span class="step-label">Agenda & Routing</span>
+            </div>
+            <div class="step-indicator" id="indicator-4">
+                4
+                <span class="step-label">Confirm</span>
+            </div>
+        </div>
+
+        <form id="visitorForm" onsubmit="event.preventDefault();">
+            <input type="hidden" id="editRequestId" name="request_id" value="">
+            
+            <!-- STEP 1: General Info -->
+            <div class="step-content active" id="step-1">
+                <h3>General Information</h3>
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="category">Category</label>
+                        <select id="category" name="category" required>
+                            <option value="">-- Select Category --</option>
+                            <option value="Customer">Customer</option>
+                            <option value="Supplier">Supplier</option>
+                            <option value="Government">Government / VIP</option>
+                            <option value="Student">Student / Academic</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label for="purpose">Purpose</label>
+                        <select id="purpose" name="purpose" required>
+                            <option value="">-- Select Purpose --</option>
+                            <option value="Plant Tour">Plant Tour</option>
+                            <option value="Meeting">Meeting</option>
+                            <option value="Audit">Audit</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="tourDate">Plant Tour Day</label>
+                        <input type="date" id="tourDate" name="tourDate" required>
+                        <div id="dateConflictWarning" style="display:none; margin-top:8px; padding:10px 14px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; font-size:0.85rem; color:#dc2626; animation: fadeIn 0.3s ease;">
+                            <i data-lucide="alert-triangle" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;"></i>
+                            <span id="conflictMessage"></span>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <label for="companyName">Company Name</label>
+                        <input type="text" id="companyName" name="companyName" placeholder="Enter company name" required>
+                    </div>
+                </div>
+
+                <!-- Booking Calendar -->
+                <div class="booking-calendar-wrapper">
+                    <div class="calendar-header-row">
+                        <h4 style="margin:0; font-size:1rem; display:flex; align-items:center; gap:6px;">
+                            <i data-lucide="calendar-days" style="width:20px;height:20px;color:var(--primary);"></i>
+                            Booking Calendar
+                        </h4>
+                        <div class="calendar-nav">
+                            <button type="button" class="cal-nav-btn" id="calPrev"><i data-lucide="chevron-left" style="width:16px;height:16px;"></i></button>
+                            <span id="calMonthYear" style="font-weight:600; font-size:0.95rem; min-width:140px; text-align:center;"></span>
+                            <button type="button" class="cal-nav-btn" id="calNext"><i data-lucide="chevron-right" style="width:16px;height:16px;"></i></button>
+                        </div>
+                    </div>
+                    <div class="calendar-legend">
+                        <span class="legend-item"><span class="legend-dot legend-available"></span> Available</span>
+                        <span class="legend-item"><span class="legend-dot legend-pending"></span> Pending</span>
+                        <span class="legend-item"><span class="legend-dot legend-approved"></span> Approved</span>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid"></div>
+                    <div id="calendarBookingDetails" style="display:none; margin-top:12px;"></div>
+                </div>
+            </div>
+
+            <!-- STEP 2: Visitors & TCP Members -->
+            <div class="step-content" id="step-2">
+                <h3>Visitors List</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Add all external visitors attending.</p>
+                <table class="modern-table" id="visitorsTable">
+                    <thead>
+                        <tr>
+                            <th width="45%">Full Name</th>
+                            <th width="45%">Job Title</th>
+                            <th width="10%">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="visitorsTbody">
+                        <!-- Rows added by JS -->
+                    </tbody>
+                </table>
+                <button type="button" class="btn btn-outline" id="addVisitorBtn">
+                    <i data-lucide="plus-circle" style="width:18px;height:18px;"></i> Add Visitor
+                </button>
+
+                <h3 style="margin-top: 2rem;">Requested Member of TCP (Internal)</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Add internal employees to welcome the visitors. Select from list or type a custom name.</p>
+                <table class="modern-table" id="tcpTable">
+                    <thead>
+                        <tr>
+                            <th width="50%">Employee Name</th>
+                            <th width="40%">Department / Role</th>
+                            <th width="10%">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tcpTbody">
+                        <!-- Rows added by JS -->
+                    </tbody>
+                </table>
+                <button type="button" class="btn btn-outline" id="addTcpBtn">
+                    <i data-lucide="plus-circle" style="width:18px;height:18px;"></i> Add Member
+                </button>
+            </div>
+
+            <!-- STEP 3: Agenda & Routing -->
+            <div class="step-content" id="step-3">
+                <h3>Agenda & Schedule</h3>
+                <table class="modern-table" id="agendaTable">
+                    <thead>
+                        <tr>
+                            <th width="20%">Start Time</th>
+                            <th width="20%">End Time</th>
+                            <th width="30%">Activity</th>
+                            <th width="20%">Remark</th>
+                            <th width="10%">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="agendaTbody">
+                        <!-- Rows added by JS -->
+                    </tbody>
+                </table>
+                <button type="button" class="btn btn-outline" id="addAgendaBtn">
+                    <i data-lucide="plus-circle" style="width:18px;height:18px;"></i> Add Agenda
+                </button>
+
+                <h3 style="margin-top: 2rem;">Routing</h3>
+                <div class="form-group">
+                    <label>Course of Plant Tour</label>
+                    <input type="hidden" id="routingCourse" name="routingCourse" value="">
+                    
+                    <!-- Location Picker -->
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.75rem;">Click locations in order to build the tour route. Drag to reorder.</p>
+                    
+                    <div class="route-preset-chips" id="routePresetChips">
+                        <button type="button" class="route-chip" data-location="Lobby"><i data-lucide="door-open" style="width:14px;height:14px;"></i> Lobby</button>
+                        <button type="button" class="route-chip" data-location="Meeting Room 1"><i data-lucide="presentation" style="width:14px;height:14px;"></i> Meeting Room 1</button>
+                        <button type="button" class="route-chip" data-location="Meeting Room 2"><i data-lucide="presentation" style="width:14px;height:14px;"></i> Meeting Room 2</button>
+                        <button type="button" class="route-chip" data-location="Production Zone A"><i data-lucide="factory" style="width:14px;height:14px;"></i> Production Zone A</button>
+                        <button type="button" class="route-chip" data-location="Production Zone B"><i data-lucide="factory" style="width:14px;height:14px;"></i> Production Zone B</button>
+                        <button type="button" class="route-chip" data-location="QA Laboratory"><i data-lucide="microscope" style="width:14px;height:14px;"></i> QA Laboratory</button>
+                        <button type="button" class="route-chip" data-location="Warehouse"><i data-lucide="warehouse" style="width:14px;height:14px;"></i> Warehouse</button>
+                        <button type="button" class="route-chip" data-location="Packing Area"><i data-lucide="package" style="width:14px;height:14px;"></i> Packing Area</button>
+                        <button type="button" class="route-chip" data-location="Showroom"><i data-lucide="image" style="width:14px;height:14px;"></i> Showroom</button>
+                        <button type="button" class="route-chip" data-location="Canteen"><i data-lucide="utensils" style="width:14px;height:14px;"></i> Canteen</button>
+                    </div>
+
+                    <!-- Custom Location Add -->
+                    <div class="route-custom-add">
+                        <input type="text" id="customLocationInput" placeholder="Add custom location..." style="flex:1; padding:0.5rem 0.75rem; font-size:0.85rem;">
+                        <button type="button" class="btn btn-sm btn-primary" id="addCustomLocationBtn" style="padding:0.5rem 1rem;">
+                            <i data-lucide="plus" style="width:14px;height:14px;"></i> Add
+                        </button>
+                    </div>
+
+                    <!-- Selected Route (sortable) -->
+                    <div class="route-selected-header" id="routeSelectedHeader" style="display:none;">
+                        <span style="font-weight:600; font-size:0.9rem;"><i data-lucide="route" style="width:16px;height:16px;vertical-align:middle;"></i> Selected Route</span>
+                        <button type="button" class="btn btn-sm btn-danger" id="clearRouteBtn" style="font-size:0.75rem; padding:3px 10px;">Clear All</button>
+                    </div>
+                    <div class="route-selected-list" id="routeSelectedList"></div>
+
+                    <!-- Flow Diagram -->
+                    <div class="route-diagram-wrapper" id="routeDiagramWrapper" style="display:none;">
+                        <div style="font-weight:600; font-size:0.9rem; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                            <i data-lucide="map" style="width:16px;height:16px;color:var(--primary);"></i> Route Diagram Preview
+                        </div>
+                        <div class="route-diagram" id="routeDiagram"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Souvenir Preparation</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label"><input type="checkbox" name="souvenir" value="Product Set"> Product Gift Set</label>
+                        <label class="checkbox-label"><input type="checkbox" name="souvenir" value="Notebook"> Notebook & Pen</label>
+                        <label class="checkbox-label"><input type="checkbox" name="souvenir" value="None"> None</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 4: Confirmation -->
+            <div class="step-content" id="step-4">
+                <h3>📋 Review & Confirm</h3>
+                <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1.5rem;">Please review all information carefully before submitting.</p>
+                
+                <div class="confirm-section">
+                    <div class="confirm-section-title">
+                        <i data-lucide="building-2" style="width:18px;height:18px;"></i> General Information
+                    </div>
+                    <div class="confirm-grid" id="confirmGeneral"></div>
+                </div>
+
+                <div class="confirm-section">
+                    <div class="confirm-section-title">
+                        <i data-lucide="users" style="width:18px;height:18px;"></i> Visitor Attendees
+                    </div>
+                    <table class="modern-table" id="confirmVisitorsTable">
+                        <thead><tr><th>No.</th><th>Full Name</th><th>Job Title</th></tr></thead>
+                        <tbody id="confirmVisitorsTbody"></tbody>
+                    </table>
+                </div>
+
+                <div class="confirm-section">
+                    <div class="confirm-section-title">
+                        <i data-lucide="calendar-clock" style="width:18px;height:18px;"></i> Agenda & Schedule
+                    </div>
+                    <table class="modern-table" id="confirmAgendaTable">
+                        <thead><tr><th>Time</th><th>Activity</th><th>Remark</th></tr></thead>
+                        <tbody id="confirmAgendaTbody"></tbody>
+                    </table>
+                </div>
+
+                <div class="confirm-section">
+                    <div class="confirm-section-title">
+                        <i data-lucide="route" style="width:18px;height:18px;"></i> Routing & Others
+                    </div>
+                    <div class="confirm-grid" id="confirmRouting"></div>
+                </div>
+
+                <!-- Workflow Preview -->
+                <div class="confirm-section" style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 1px solid #bfdbfe;">
+                    <div class="confirm-section-title" style="color: #1d4ed8;">
+                        <i data-lucide="git-branch" style="width:18px;height:18px;"></i> Approval Workflow
+                    </div>
+                    <div class="workflow-mini">
+                        <div class="wf-mini-step"><span class="wf-mini-dot wf-done"></span> Submit</div>
+                        <div class="wf-mini-arrow">→</div>
+                        <div class="wf-mini-step"><span class="wf-mini-dot wf-pending"></span> Plant Manager</div>
+                        <div class="wf-mini-arrow">→</div>
+                        <div class="wf-mini-step"><span class="wf-mini-dot"></span> Managing Director</div>
+                        <div class="wf-mini-arrow">→</div>
+                        <div class="wf-mini-step"><span class="wf-mini-dot"></span> Pass Ready</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="actions-footer">
+                <button type="button" class="btn btn-secondary" id="btnPrev" style="display: none;">
+                    <i data-lucide="arrow-left" style="width:18px;height:18px;"></i> Back
+                </button>
+                <div style="flex:1;"></div>
+                <button type="button" class="btn btn-primary" id="btnNext">
+                    Next <i data-lucide="arrow-right" style="width:18px;height:18px;"></i>
+                </button>
+                <button type="button" class="btn btn-primary" id="btnSubmit" style="display: none; background: var(--success);">
+                    Submit Request <i data-lucide="check-circle" style="width:18px;height:18px;"></i>
+                </button>
+            </div>
+            
+        </form>
+
+        <!-- Success Confirmation Container -->
+        <div id="successContainer" style="display: none; text-align: center; padding: 2rem 0;">
+            <div style="color: var(--success); margin-bottom: 1rem;">
+                <i data-lucide="check-circle" style="width: 64px; height: 64px;"></i>
+            </div>
+            <h2 style="color: var(--text-dark); margin-bottom: 0.5rem;">Request Submitted Successfully!</h2>
+            <p style="color: var(--text-muted); margin-bottom: 3rem;">Your visitor request <strong id="displayRequestId"></strong> has been submitted and is now in the approval workflow.</p>
+            
+            <!-- Workflow Diagram -->
+            <div class="workflow-diagram">
+                <div class="wf-step completed">
+                    <div class="wf-icon"><i data-lucide="send"></i></div>
+                    <div class="wf-label">Submitted</div>
+                    <div class="wf-sub">Requester</div>
+                </div>
+                <div class="wf-line current"></div>
+                <div class="wf-step current">
+                    <div class="wf-icon"><i data-lucide="clock"></i></div>
+                    <div class="wf-label">Pending PM</div>
+                    <div class="wf-sub">Plant Manager</div>
+                </div>
+                <div class="wf-line"></div>
+                <div class="wf-step">
+                    <div class="wf-icon"><i data-lucide="shield-check"></i></div>
+                    <div class="wf-label">Pending MD</div>
+                    <div class="wf-sub">Managing Director</div>
+                </div>
+                <div class="wf-line"></div>
+                <div class="wf-step">
+                    <div class="wf-icon"><i data-lucide="mail-check"></i></div>
+                    <div class="wf-label">Pass Ready</div>
+                    <div class="wf-sub">Sent to Requester</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 3.5rem;">
+                <a href="portal.html" class="btn btn-outline" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
+                    <i data-lucide="home" style="width: 18px; height: 18px; margin-right: 8px;"></i> Return to Portal
+                </a>
+                <button class="btn btn-primary" onclick="window.location.reload()" style="margin-left: 1rem;">
+                    Submit Another Request
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  lucide.createIcons();
+</script>
+</body>
+</html>
