@@ -6,8 +6,8 @@ ini_set('session.use_only_cookies', 1);
 session_start();
 $host = 'localhost';
 $db   = 'visitor_system';
-$user = 'root';
-$pass = ''; // Default XAMPP has no password
+$user = 'vr_user';
+$pass = 'Tcpr@Portal'; // Default XAMPP has no password
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
